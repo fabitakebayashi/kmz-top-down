@@ -1,6 +1,6 @@
 import haxe.io.Input;  // para poder usar Input, ao invés de haxe.io.Input (linha 15, 16)
 import sys.io.File;  // para poder usar Input, ao invés de sys.io.File
- 
+
 class KmzTopDown {
 	static function getElementName(xml:Xml) {
 		return xml.elementsNamed("name").next().firstChild().nodeValue;
@@ -75,19 +75,32 @@ class KmzTopDown {
 
 
 	static function main() {
+		// customiza trace() para melhor legibilidade e para que lide automaticamente com !Utf8 no Windows
+		haxe.Log.trace = function (msg, ?pos) {
+			// no Windows, remove Utf8 (decodifica para o que o console está usando)
+			if (Sys.systemName() == "Windows" && haxe.Utf8.validate(msg))
+				msg = haxe.Utf8.decode(msg);
+			// prepara a mensagem
+			msg += '   @ ${pos.className}::${pos.methodName} (${pos.fileName}:${pos.lineNumber})\n';
+			if (pos.customParams != null)
+				msg += pos.customParams.map(function (x) return '\t$x\n');
+			// escreve no console (no output de erro)
+			Sys.stderr().writeString(msg);
+		}
+
 		trace("Pookyto");
-		
+
 		var args = Sys.args(); //mto estúpido!
 		trace(args);
 
 		if (args.length < 3)
 			throw "Usage: KmzTopDown <data.csv> <icons.json> <kml,kmz> ...";
 		var csvPath = args[0];
-		
+
 		var csvData:haxe.io.Input = sys.io.File.read(csvPath, false);
 		//var csvData:Input = File.read(csvPath, false);
 		//trace(csvData.readLine()); - não usar!!! só para não esquecer!!! não descomentar pq o Jonas explode!!
-		
+
 		var reader = new format.csv.Reader(";");
 		reader.reset(null, csvData);
 
@@ -102,7 +115,7 @@ class KmzTopDown {
 				localProj : rec[5],
 				infraProj : rec[6]
 			};
-			
+
 			kmzTopDownData.set(data.idPleito, data);
 
 		}
@@ -113,7 +126,7 @@ class KmzTopDown {
 
 		var doc=kml.elementsNamed("kml").next().elementsNamed("Document").next();
 
-		trace(findFolders(kml).map(haxe.Utf8.decode)); // ignorar a firula do Utf8 decode for now
+		trace(findFolders(kml));
 
 		var iconsPath = args[1];
 		var iconsJson = sys.io.File.getContent(iconsPath);
@@ -123,7 +136,7 @@ class KmzTopDown {
 
 		//kml.addChild(Xml.createComment("Eu sou um comentário feliz-Pookyto!"));
 		//sys.io.File.saveContent("temp.kml", kml.toString());
-		
+
 
 		for (fname in ["Selecionado", "Análise", "Projetos decididos"])
 			getOrAddFolder(doc,fname);
