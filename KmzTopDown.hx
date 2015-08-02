@@ -120,6 +120,12 @@ class KmzTopDown {
 				infraProj : rec[6]
 			};
 
+			// ignore se não foi possível parsear idPleito em Int
+			if (data.idPleito == null) {
+				trace('WARNING: Ignorando linha do csv: ${rec.slice(0,3).join(",")}...');
+				continue;
+			}
+
 			kmzTopDownData.set(data.idPleito, data);
 
 		}
