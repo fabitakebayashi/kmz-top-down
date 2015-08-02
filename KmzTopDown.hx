@@ -77,9 +77,13 @@ class KmzTopDown {
 	static function main() {
 		// customiza trace() para melhor legibilidade e para que lide automaticamente com !Utf8 no Windows
 		haxe.Log.trace = function (msg, ?pos) {
+			msg = Std.string(msg);
 			// no Windows, remove Utf8 (decodifica para o que o console está usando)
 			if (Sys.systemName() == "Windows" && haxe.Utf8.validate(msg))
 				msg = haxe.Utf8.decode(msg);
+			// já no Linux ou Mac, converte para Utf8 se já não estiver assim
+			if (Sys.systemName() != "Windows" && !haxe.Utf8.validate(msg))
+				msg = haxe.Utf8.encode(msg);
 			// prepara a mensagem
 			msg += '   @ ${pos.className}::${pos.methodName} (${pos.fileName}:${pos.lineNumber})\n';
 			if (pos.customParams != null)
