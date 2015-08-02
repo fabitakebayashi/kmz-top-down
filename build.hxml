@@ -1,0 +1,5 @@
+-main KmzTopDown
+-neko KmzTopDown.n
+
+-lib csv
+-cmd nekotools boot KmzTopDown.n
