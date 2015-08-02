@@ -168,9 +168,27 @@ class KmzTopDown {
 
 
 
+		// escreve o kmz
+		var kmzPath = ~/\.kml$/.replace(kmlPath, "_topDown.kmz");
+		trace(kmzPath);
+		var zentries = new List();
+		var zoutput = new haxe.io.BytesOutput();
+		var zwriter = new haxe.zip.Writer(zoutput);
 
+		var docBytes = haxe.io.Bytes.ofString(kml.toString());
+		zentries.add({
+			fileName : "doc.kml",
+			fileTime : Date.now(),
+			data : docBytes,
+			compressed : false,
+			fileSize : 0,
+			dataSize :  0,
+			crc32 : null
+		});
 
+		zwriter.write(zentries);
+		sys.io.File.saveBytes(kmzPath, zoutput.getBytes());
+		sys.io.File.saveBytes("temp.kml", docBytes);
 
-		sys.io.File.saveContent("temp.kml", kml.toString());
 	}
 }
