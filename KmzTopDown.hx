@@ -34,6 +34,19 @@ class KmzTopDown {
 		return ret;
 	}
 
+	static function pruneFolders(xml:Xml)
+	{
+		var elements = [ for (e in xml.elements()) e ];
+		for (e in elements)
+			pruneFolders(e);
+		if (xml.nodeType == Element && xml.nodeName == "Folder") {
+			var pmarks = [ for (e in xml.elementsNamed("Placemark")) e ];
+			var folders = [ for (e in xml.elementsNamed("Folder")) e ];
+			if (pmarks.length + folders.length == 0)
+				xml.parent.removeChild(xml);
+		}
+	}
+
 	static function getOrAddFolder(xml:Xml, name:String){
 		for (folder in xml.elementsNamed("Folder")){
 			var fname=getElementName(folder);
@@ -96,13 +109,10 @@ class KmzTopDown {
 			pleitoFolder.addChild(pmark);
 			if (!pmark.elementsNamed("Point").hasNext())
 				continue;
-			// ref our icon style if possible (if pmark doesn't have a styleUrl yet)
-			// else, add our icon style inline
 			var icon = selectIcon(iconsData, data);
-			if (!pmark.elementsNamed("styleUrl").hasNext())
-				pmark.addChild(Xml.parse('<styleUrl>#icons/$icon.png</styleUrl>'));
-			else
-				pmark.addChild(Xml.parse('<Style><IconStyle><Icon><href>icons/$icon.png</href></Icon></IconStyle></Style>'));
+			if (pmark.elementsNamed("styleUrl").hasNext())
+				pmark.removeChild(pmark.elementsNamed("styleUrl").next());
+			pmark.addChild(Xml.parse('<styleUrl>#icons/$icon.png</styleUrl>'));
 		}
 		for (pmark in rm)
 			pmark.parent.removeChild(pmark);
@@ -216,7 +226,12 @@ class KmzTopDown {
 		var labelsFolder=ancoraContents.next(); //pasta labels
 
 		processLabels(labelsFolder,kmzTopDownData,iconsData,doc);
-		// processLabels(tracadoFolder,kmzTopDownData,iconsData,doc);
+		processLabels(tracadoFolder,kmzTopDownData,iconsData,doc);  // temporário para traçados
+
+		// finishing touches
+		pruneFolders(kml);
+		doc.removeChild(doc.elementsNamed("name").next());
+		doc.addChild(Xml.parse('<name>$kmzPath</name>'));
 
 		// escreve o doc.kml no kmz de saída
 		var docBytes = Bytes.ofString(kml.toString());
