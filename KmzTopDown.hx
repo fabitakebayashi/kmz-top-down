@@ -16,12 +16,11 @@ typedef IconsData = {
 	codAncora : Dynamic,
 	codProjeto : Dynamic,
 	categoria : Dynamic,
+	categoriaIgnorada : Array<String>,
 	source : String
 }
 
 class KmzTopDown {
-	static var RES_AHP_TO_REMOVE = ["Não selecionado", "Excluído"];
-
 	static function getElementName(xml:Xml) {
 		return xml.elementsNamed("name").next().firstChild().nodeValue;
 	}
@@ -86,8 +85,8 @@ class KmzTopDown {
 				trace('WARNING falta info para pleito $idPlacemark');
 				continue;
 			}
-			if (Lambda.has(RES_AHP_TO_REMOVE, data.resAHP)) {
-				trace('WARNING removendo pleito $idPlacemark (${data.resAHP})');
+			if (Lambda.has(iconsData.categoriaIgnorada, data.resAHP)) {
+				trace('WARNING removendo pleito $idPlacemark (resAHP: ${data.resAHP})');
 				rm.push(pmark);
 				continue;
 			}
