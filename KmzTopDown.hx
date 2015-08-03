@@ -1,5 +1,23 @@
-import haxe.io.Input;  // para poder usar Input, ao invés de haxe.io.Input (linha 15, 16)
-import sys.io.File;  // para poder usar Input, ao invés de sys.io.File
+import haxe.io.*;  // para poder usar Input e BytesOutput, ao invés de haxe.io.Input/BytesOutput
+import haxe.zip.Entry in ZipEntry;  // para poder user ZipEntry ao invés de haxe.zip.Entry
+import sys.io.File;  // para poder usar File, ao invés de sys.io.File
+
+typedef TopDownData = {
+	idPleito : Int,
+	idAgrup : Int,
+	idAncora : Int,
+	tipoProj : String,
+	resAHP : String,
+	localProj : String,
+	infraProj : String
+}
+
+typedef IconsData = {
+	codAncora : Dynamic,
+	codProjeto : Dynamic,
+	categoria : Dynamic,
+	source : String
+}
 
 class KmzTopDown {
 	static function getElementName(xml:Xml) {
@@ -37,7 +55,7 @@ class KmzTopDown {
 		// var folder = Xml.parse('<Folder><name>$name</name></Folder>');
 	}
 
-	static function processLabels(xml:Xml, kmzTopDownData:Map<Int, {idPleito:Int, idAgrup:Int, idAncora:Int, tipoProj:String, resAHP:String, localProj:String, infraProj:String}>,doc:Xml){
+	static function processLabels(xml:Xml, kmzTopDownData:Map<Int, TopDownData>,doc:Xml){
 		trace(getElementName(xml));
 		for (folder in xml.elementsNamed("Folder")){
 			$type(folder);
@@ -61,7 +79,7 @@ class KmzTopDown {
 
 	}
 
-	static function createIcons(doc:Xml, out:List<haxe.zip.Entry>, iconsData:{codAncora: Dynamic, codProjeto:Dynamic, categoria: Dynamic, source: String}){
+	static function createIcons(doc:Xml, out:List<ZipEntry>, iconsData:IconsData){
 		var iconsPath = sys.FileSystem.readDirectory(iconsData.source);
 		for (path in iconsPath){
 			if (!StringTools.endsWith(path.toLowerCase(), ".png"))
@@ -72,7 +90,7 @@ class KmzTopDown {
 			out.add({
 				fileName : kmzPath,
 				fileTime : Date.now(),
-				data : sys.io.File.getBytes('${iconsData.source}/$path'),
+				data : File.getBytes('${iconsData.source}/$path'),
 				compressed : false,
 				fileSize : 0,
 				dataSize :  0,
@@ -138,7 +156,7 @@ class KmzTopDown {
 		}
 
 		var kmlPath = args[2];
-		var kmlData:haxe.io.Input = sys.io.File.read(kmlPath,true);
+		var kmlData:Input = File.read(kmlPath,true);
 		var kml = Xml.parse(kmlData.readAll().toString());
 
 		var doc=kml.elementsNamed("kml").next().elementsNamed("Document").next();
@@ -146,21 +164,21 @@ class KmzTopDown {
 		var kmzPath = ~/\.kml$/.replace(kmlPath, "_topDown.kmz");
 		trace(kmzPath);
 		var zentries = new List();
-		var zoutput = new haxe.io.BytesOutput();
+		var zoutput = new BytesOutput();
 		var zwriter = new haxe.zip.Writer(zoutput);
 
 		trace(findFolders(kml));
 
 		var iconsPath = args[1];
-		var iconsJson = sys.io.File.getContent(iconsPath);
-		var iconsData:{codAncora: Dynamic, codProjeto:Dynamic, categoria: Dynamic, source: String} = haxe.Json.parse(iconsJson);
+		var iconsJson = File.getContent(iconsPath);
+		var iconsData:IconsData = haxe.Json.parse(iconsJson);
 
 		createIcons(doc, zentries, iconsData);
 
 		//kml.addChild(Xml.createComment("Eu sou um comentário feliz-Pookyto!"));
-		//sys.io.File.saveContent("temp.kml", kml.toString());
+		//File.saveContent("temp.kml", kml.toString());
 
-
+		// não necessário, processLabels já chama getOrAddFolder conforme necessário
 		for (fname in ["Selecionado", "Análise", "Projetos decididos"])
 			getOrAddFolder(doc,fname);
 
@@ -173,7 +191,7 @@ class KmzTopDown {
 		processLabels(labelsFolder,kmzTopDownData,doc);
 
 		// escreve o doc.kml no kmz de saída
-		var docBytes = haxe.io.Bytes.ofString(kml.toString());
+		var docBytes = Bytes.ofString(kml.toString());
 		zentries.add({
 			fileName : "doc.kml",
 			fileTime : Date.now(),
@@ -186,8 +204,8 @@ class KmzTopDown {
 
 		// escreve o kmz
 		zwriter.write(zentries);
-		sys.io.File.saveBytes(kmzPath, zoutput.getBytes());
-		sys.io.File.saveBytes("temp.kml", docBytes);
+		File.saveBytes(kmzPath, zoutput.getBytes());
+		File.saveBytes("temp.kml", docBytes);
 	}
 }
 
