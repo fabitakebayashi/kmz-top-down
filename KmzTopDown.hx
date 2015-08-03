@@ -94,8 +94,15 @@ class KmzTopDown {
 			var agrupFolder = getOrAddFolder(outFolder, Std.string(data.idAgrup));
 			var pleitoFolder = getOrAddFolder(agrupFolder, idPlacemark);
 			pleitoFolder.addChild(pmark);
+			if (!pmark.elementsNamed("Point").hasNext())
+				continue;
+			// ref our icon style if possible (if pmark doesn't have a styleUrl yet)
+			// else, add our icon style inline
 			var icon = selectIcon(iconsData, data);
-			pmark.addChild(Xml.parse('<styleUrl>#icons/$icon.png</styleUrl>'));
+			if (!pmark.elementsNamed("styleUrl").hasNext())
+				pmark.addChild(Xml.parse('<styleUrl>#icons/$icon.png</styleUrl>'));
+			else
+				pmark.addChild(Xml.parse('<Style><IconStyle><Icon><href>icons/$icon.png</href></Icon></IconStyle></Style>'));
 		}
 		for (pmark in rm)
 			pmark.parent.removeChild(pmark);
@@ -209,6 +216,7 @@ class KmzTopDown {
 		var labelsFolder=ancoraContents.next(); //pasta labels
 
 		processLabels(labelsFolder,kmzTopDownData,iconsData,doc);
+		// processLabels(tracadoFolder,kmzTopDownData,iconsData,doc);
 
 		// escreve o doc.kml no kmz de saída
 		var docBytes = Bytes.ofString(kml.toString());
