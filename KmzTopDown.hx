@@ -59,16 +59,24 @@ class KmzTopDown {
 
 	}
 
-	static function createIcons(doc:Xml, iconsData:{codAncora: Dynamic, codProjeto:Dynamic, categoria: Dynamic, source: String}){
+	static function createIcons(doc:Xml, out:List<haxe.zip.Entry>, iconsData:{codAncora: Dynamic, codProjeto:Dynamic, categoria: Dynamic, source: String}){
 		var iconsPath = sys.FileSystem.readDirectory(iconsData.source);
 		for (path in iconsPath){
 			if (!StringTools.endsWith(path.toLowerCase(), ".png"))
 				continue;
-			var style = Xml.parse('<Style id="$path"> <IconStyle> <Icon> <href>$path</href> </Icon> </IconStyle> </Style>');
-
+			var kmzPath = "icons/" + path;
+			var style = Xml.parse('<Style id="$kmzPath"><IconStyle><Icon><href>$kmzPath</href></Icon></IconStyle></Style>');
 			doc.insertChild(style,1);
+			out.add({
+				fileName : kmzPath,
+				fileTime : Date.now(),
+				data : sys.io.File.getBytes('${iconsData.source}/$path'),
+				compressed : false,
+				fileSize : 0,
+				dataSize :  0,
+				crc32 : null
+			});
 		}
-
 	}
 
 
@@ -136,13 +144,19 @@ class KmzTopDown {
 
 		var doc=kml.elementsNamed("kml").next().elementsNamed("Document").next();
 
+		var kmzPath = ~/\.kml$/.replace(kmlPath, "_topDown.kmz");
+		trace(kmzPath);
+		var zentries = new List();
+		var zoutput = new haxe.io.BytesOutput();
+		var zwriter = new haxe.zip.Writer(zoutput);
+
 		trace(findFolders(kml));
 
 		var iconsPath = args[1];
 		var iconsJson = sys.io.File.getContent(iconsPath);
 		var iconsData:{codAncora: Dynamic, codProjeto:Dynamic, categoria: Dynamic, source: String} = haxe.Json.parse(iconsJson);
 
-		createIcons(doc, iconsData);
+		createIcons(doc, zentries, iconsData);
 
 		//kml.addChild(Xml.createComment("Eu sou um comentário feliz-Pookyto!"));
 		//sys.io.File.saveContent("temp.kml", kml.toString());
@@ -168,13 +182,7 @@ class KmzTopDown {
 
 
 
-		// escreve o kmz
-		var kmzPath = ~/\.kml$/.replace(kmlPath, "_topDown.kmz");
-		trace(kmzPath);
-		var zentries = new List();
-		var zoutput = new haxe.io.BytesOutput();
-		var zwriter = new haxe.zip.Writer(zoutput);
-
+		// escreve o doc.kml no kmz de saída
 		var docBytes = haxe.io.Bytes.ofString(kml.toString());
 		zentries.add({
 			fileName : "doc.kml",
@@ -186,6 +194,7 @@ class KmzTopDown {
 			crc32 : null
 		});
 
+		// escreve o kmz
 		zwriter.write(zentries);
 		sys.io.File.saveBytes(kmzPath, zoutput.getBytes());
 		sys.io.File.saveBytes("temp.kml", docBytes);
