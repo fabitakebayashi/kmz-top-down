@@ -20,6 +20,8 @@ typedef IconsData = {
 }
 
 class KmzTopDown {
+	static var RES_AHP_TO_REMOVE = ["Não selecionado", "Excluído"];
+
 	static function getElementName(xml:Xml) {
 		return xml.elementsNamed("name").next().firstChild().nodeValue;
 	}
@@ -75,12 +77,18 @@ class KmzTopDown {
 			$type(folder);
 			processLabels(folder,kmzTopDownData,iconsData,doc);
 		}
+		var rm = [];
 		for (pmark in xml.elementsNamed("Placemark")){
 			var idPlacemark=getElementName(pmark);
 			$type(idPlacemark);
 			var data=kmzTopDownData.get(Std.parseInt(idPlacemark));
 			if (data==null){
-				trace('Falta info para pleito $idPlacemark');
+				trace('WARNING falta info para pleito $idPlacemark');
+				continue;
+			}
+			if (Lambda.has(RES_AHP_TO_REMOVE, data.resAHP)) {
+				trace('WARNING removendo pleito $idPlacemark (${data.resAHP})');
+				rm.push(pmark);
 				continue;
 			}
 			var outFolder = getOrAddFolder(doc, data.resAHP);
@@ -90,7 +98,8 @@ class KmzTopDown {
 			var icon = selectIcon(iconsData, data);
 			pmark.addChild(Xml.parse('<styleUrl>#icons/$icon.png</styleUrl>'));
 		}
-
+		for (pmark in rm)
+			pmark.parent.removeChild(pmark);
 	}
 
 	static function createIcons(doc:Xml, out:List<ZipEntry>, iconsData:IconsData){
@@ -161,7 +170,7 @@ class KmzTopDown {
 
 			// ignore se não foi possível parsear idPleito em Int
 			if (data.idPleito == null) {
-				trace('WARNING: Ignorando linha do csv: ${rec.slice(0,3).join(",")}...');
+				trace('WARNING ignorando linha do csv: ${rec.slice(0,3).join(",")}...');
 				continue;
 			}
 
