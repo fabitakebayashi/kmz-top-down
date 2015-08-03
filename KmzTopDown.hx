@@ -55,6 +55,8 @@ class KmzTopDown {
 			var agrupFolder = getOrAddFolder(outFolder, Std.string(data.idAgrup));
 			var pleitoFolder = getOrAddFolder(agrupFolder, idPlacemark);
 			pleitoFolder.addChild(pmark);
+			var icon = "02-1b";  // TODO
+			pmark.addChild(Xml.parse('<styleUrl>#icons/$icon.png</styleUrl>'));
 		}
 
 	}
