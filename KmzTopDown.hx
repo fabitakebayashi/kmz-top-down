@@ -79,9 +79,6 @@ class KmzTopDown {
 		}
 	}
 
-
-
-
 	static function main() {
 		// customiza trace() para melhor legibilidade e para que lide automaticamente com !Utf8 no Windows
 		haxe.Log.trace = function (msg, ?pos) {
@@ -173,15 +170,6 @@ class KmzTopDown {
 
 		processLabels(labelsFolder,kmzTopDownData,doc);
 
-
-
-
-
-
-
-
-
-
 		// escreve o doc.kml no kmz de saída
 		var docBytes = haxe.io.Bytes.ofString(kml.toString());
 		zentries.add({
@@ -198,6 +186,6 @@ class KmzTopDown {
 		zwriter.write(zentries);
 		sys.io.File.saveBytes(kmzPath, zoutput.getBytes());
 		sys.io.File.saveBytes("temp.kml", docBytes);
-
 	}
 }
+
