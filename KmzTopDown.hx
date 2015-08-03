@@ -2,7 +2,7 @@ import haxe.io.*;  // para poder usar Input e BytesOutput, ao invés de haxe.io.
 import haxe.zip.Entry in ZipEntry;  // para poder user ZipEntry ao invés de haxe.zip.Entry
 import sys.io.File;  // para poder usar File, ao invés de sys.io.File
 
-typedef TopDownData = {
+typedef TopDownDataRecord = {
 	idPleito : Int,
 	idAgrup : Int,
 	idAncora : Int,
@@ -55,11 +55,25 @@ class KmzTopDown {
 		// var folder = Xml.parse('<Folder><name>$name</name></Folder>');
 	}
 
-	static function processLabels(xml:Xml, kmzTopDownData:Map<Int, TopDownData>,doc:Xml){
+	static function ensureUtf8(s:String)
+	{
+		return haxe.Utf8.validate(s) ? s : haxe.Utf8.encode(s);
+	}
+
+	static function selectIcon(iconsData:IconsData, pmarkData:TopDownDataRecord){
+		var ca = Reflect.field(iconsData.codAncora, Std.string(pmarkData.idAncora));
+		var cp = Reflect.field(Reflect.field(iconsData.codProjeto, pmarkData.localProj), pmarkData.infraProj);
+		var cc = Reflect.field(iconsData.categoria, pmarkData.resAHP);
+		if (ca == null || cp == null || cc == null)
+			trace('WARNING faltam ícones para ${pmarkData.idPleito}: $ca (${pmarkData.idAncora}) $cp (${pmarkData.infraProj}) $cc (${pmarkData.resAHP})');
+		return '$ca-$cp$cc';
+	}
+
+	static function processLabels(xml:Xml, kmzTopDownData:Map<Int, TopDownDataRecord>, iconsData:IconsData,doc:Xml){
 		trace(getElementName(xml));
 		for (folder in xml.elementsNamed("Folder")){
 			$type(folder);
-			processLabels(folder,kmzTopDownData,doc);
+			processLabels(folder,kmzTopDownData,iconsData,doc);
 		}
 		for (pmark in xml.elementsNamed("Placemark")){
 			var idPlacemark=getElementName(pmark);
@@ -73,7 +87,7 @@ class KmzTopDown {
 			var agrupFolder = getOrAddFolder(outFolder, Std.string(data.idAgrup));
 			var pleitoFolder = getOrAddFolder(agrupFolder, idPlacemark);
 			pleitoFolder.addChild(pmark);
-			var icon = "02-1b";  // TODO
+			var icon = selectIcon(iconsData, data);
 			pmark.addChild(Xml.parse('<styleUrl>#icons/$icon.png</styleUrl>'));
 		}
 
@@ -139,10 +153,10 @@ class KmzTopDown {
 				idPleito : Std.parseInt(rec[0]),
 				idAgrup : Std.parseInt(rec[1]),
 				idAncora : Std.parseInt(rec[2]),
-				tipoProj : rec[3],
-				resAHP : rec[4],
-				localProj : rec[5],
-				infraProj : rec[6]
+				tipoProj : ensureUtf8(rec[3]),
+				resAHP : ensureUtf8(rec[4]),
+				localProj : ensureUtf8(rec[5]),
+				infraProj : ensureUtf8(rec[6])
 			};
 
 			// ignore se não foi possível parsear idPleito em Int
@@ -152,7 +166,6 @@ class KmzTopDown {
 			}
 
 			kmzTopDownData.set(data.idPleito, data);
-
 		}
 
 		var kmlPath = args[2];
@@ -188,7 +201,7 @@ class KmzTopDown {
 		var tracadoFolder=ancoraContents.next(); //pasta traçado
 		var labelsFolder=ancoraContents.next(); //pasta labels
 
-		processLabels(labelsFolder,kmzTopDownData,doc);
+		processLabels(labelsFolder,kmzTopDownData,iconsData,doc);
 
 		// escreve o doc.kml no kmz de saída
 		var docBytes = Bytes.ofString(kml.toString());
