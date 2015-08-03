@@ -72,7 +72,7 @@ class KmzTopDown {
 	}
 
 	static function processLabels(xml:Xml, kmzTopDownData:Map<Int, TopDownDataRecord>, iconsData:IconsData,doc:Xml){
-		trace(getElementName(xml));
+		trace('Em ${getElementName(xml)}');
 		for (folder in xml.elementsNamed("Folder")){
 			$type(folder);
 			processLabels(folder,kmzTopDownData,iconsData,doc);
@@ -140,10 +140,10 @@ class KmzTopDown {
 			Sys.stderr().writeString(msg);
 		}
 
-		trace("Pookyto");
+		trace("Welcome, Pookyto!");
 
 		var args = Sys.args(); //mto estúpido!
-		trace(args);
+		trace('Command line arguments: ${args.join(",")}');
 
 		if (args.length < 3)
 			throw "Usage: KmzTopDown <data.csv> <icons.json> <kml,kmz> ...";
@@ -184,12 +184,11 @@ class KmzTopDown {
 		var doc=kml.elementsNamed("kml").next().elementsNamed("Document").next();
 
 		var kmzPath = ~/\.kml$/.replace(kmlPath, "_topDown.kmz");
-		trace(kmzPath);
 		var zentries = new List();
 		var zoutput = new BytesOutput();
 		var zwriter = new haxe.zip.Writer(zoutput);
 
-		trace(findFolders(kml));
+		trace("Folder Kml elements:\n\t" + findFolders(kml).join("\n\t"));
 
 		var iconsPath = args[1];
 		var iconsJson = File.getContent(iconsPath);
@@ -201,8 +200,8 @@ class KmzTopDown {
 		//File.saveContent("temp.kml", kml.toString());
 
 		// não necessário, processLabels já chama getOrAddFolder conforme necessário
-		for (fname in ["Selecionado", "Análise", "Projetos decididos"])
-			getOrAddFolder(doc,fname);
+		// for (fname in ["Selecionado", "Análise", "Projetos decididos"])
+		// 	getOrAddFolder(doc,fname);
 
 		var ancoraFolder=doc.elementsNamed("Folder").next(); //âncora
 		var ancoraContents=ancoraFolder.elementsNamed("Folder");
