@@ -9,7 +9,12 @@ typedef TopDownDataRecord = {
 	tipoProj : String,
 	resAHP : String,
 	localProj : String,
-	infraProj : String
+	infraProj : String,
+	posAHP : String,
+	nomeProj : String,
+	invest : String,
+	notaDE : String,
+	notaBU : String
 }
 
 typedef IconsData = {
@@ -112,11 +117,11 @@ class KmzTopDown {
 				pmark.removeChild(pmark.elementsNamed("description").next());
 			var desc = Xml.createElement("description");
 			var descFields = [
-				{ key : "Posição AHP", val : data.resAHP },
-				{ key : "Nome do pleito", val : "(faltando)" },
-				{ key : "Valor de investimento", val : "(faltando)" },
-				{ key : "Nota desempenho econômico", val : "(faltando)" },
-				{ key : "Nota bottom-up", val : "(faltando)" }
+				{ key : "Posição AHP", val : data.posAHP },
+				{ key : "Nome do pleito", val : data.nomeProj },
+				{ key : "Valor de investimento (milhares de reais)", val : data.invest },
+				{ key : "Nota desempenho econômico", val : data.notaDE },
+				{ key : "Nota bottom-up", val : data.notaBU }
 			];
 			desc.addChild(Xml.createCData(descFields.map(function (x) return '<b>${x.key}</b>: ${x.val}').join("<br/>")));
 			pmark.addChild(desc);
@@ -195,7 +200,12 @@ class KmzTopDown {
 				tipoProj : ensureUtf8(rec[3]),
 				resAHP : ensureUtf8(rec[4]),
 				localProj : ensureUtf8(rec[5]),
-				infraProj : ensureUtf8(rec[6])
+				infraProj : ensureUtf8(rec[6]),
+				posAHP : ensureUtf8(rec[7]),
+				nomeProj : ensureUtf8(rec[8]),
+				invest : ensureUtf8(rec[9]),
+				notaDE : ensureUtf8(rec[10]),
+				notaBU : ensureUtf8(rec[11])
 			};
 
 			// ignore se não foi possível parsear idPleito em Int
