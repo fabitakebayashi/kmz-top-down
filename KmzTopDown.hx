@@ -107,6 +107,20 @@ class KmzTopDown {
 			var agrupFolder = getOrAddFolder(outFolder, Std.string(data.idAgrup));
 			var pleitoFolder = getOrAddFolder(agrupFolder, idPlacemark);
 			pleitoFolder.addChild(pmark);
+
+			if (pmark.elementsNamed("description").hasNext())
+				pmark.removeChild(pmark.elementsNamed("description").next());
+			var desc = Xml.createElement("description");
+			var descFields = [
+				{ key : "Posição AHP", val : data.resAHP },
+				{ key : "Nome do pleito", val : "(faltando)" },
+				{ key : "Valor de investimento", val : "(faltando)" },
+				{ key : "Nota desempenho econômico", val : "(faltando)" },
+				{ key : "Nota bottom-up", val : "(faltando)" }
+			];
+			desc.addChild(Xml.createCData(descFields.map(function (x) return '<b>${x.key}</b>: ${x.val}').join("<br/>")));
+			pmark.addChild(desc);
+
 			if (!pmark.elementsNamed("Point").hasNext())
 				continue;
 			var icon = selectIcon(iconsData, data);
@@ -234,7 +248,7 @@ class KmzTopDown {
 		doc.addChild(Xml.parse('<name>$kmzPath</name>'));
 
 		// escreve o doc.kml no kmz de saída
-		var docBytes = Bytes.ofString(kml.toString());
+		var docBytes = Bytes.ofString(haxe.xml.Printer.print(kml, true));
 		zentries.add({
 			fileName : "doc.kml",
 			fileTime : Date.now(),
