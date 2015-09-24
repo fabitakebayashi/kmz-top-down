@@ -76,7 +76,7 @@ class KmzTopDown {
 
 	static function ensureUtf8(s:String)
 	{
-		return haxe.Utf8.validate(s) ? s : haxe.Utf8.encode(s);
+		return s == null || haxe.Utf8.validate(s) ? s : haxe.Utf8.encode(s);
 	}
 
 	static function selectIcon(iconsData:IconsData, pmarkData:TopDownDataRecord){
