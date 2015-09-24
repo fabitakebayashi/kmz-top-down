@@ -55,6 +55,7 @@ class KmzTopDown {
 		}
 	}
 
+	// prune (global) unused styles from `doc` **in place**
 	static function pruneStyles(doc:Xml)
 	{
 		var del = new Map();
@@ -72,8 +73,25 @@ class KmzTopDown {
 		}
 
 		// actually remove the style nodes
+		trace('Pruning ${Lambda.count(del)} unused styles');
 		for (node in del)
 			doc.removeChild(node);
+	}
+
+	// return a pluned list of icon zip entries only keeping those used by
+	// existing styles
+	static function filterIconEntries(entries:List<ZipEntry>, doc:Xml)
+	{
+		var keep = new Map();
+		for (style in doc.elementsNamed("Style")) {
+			for (istyle in style.elementsNamed("IconStyle")) {
+				var path = istyle.elementsNamed("Icon").next().elementsNamed("href").next().firstChild().nodeValue;
+				keep[path] = true;
+			}
+		}
+
+		trace('Pruning ${entries.length - Lambda.count(keep)} icon zip entries');
+		return Lambda.filter(entries, function (e) return !keep.exists(e.fileName));
 	}
 
 	static function getOrAddFolder(xml:Xml, name:String){
@@ -282,6 +300,7 @@ class KmzTopDown {
 		// finishing touches
 		pruneFolders(doc);
 		pruneStyles(doc);
+		zentries = filterIconEntries(zentries, doc);
 		doc.removeChild(doc.elementsNamed("name").next());
 		doc.addChild(Xml.parse('<name>$kmzPath</name>'));
 
