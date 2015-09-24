@@ -193,6 +193,9 @@ class KmzTopDown {
 
 		var kmzTopDownData = new Map();
 		for (rec in reader){
+			if (rec.length == 1 && rec[0].length > 0)
+				throw 'ERROR missing fields or wrong separator';
+
 			var data = {
 				idPleito : Std.parseInt(rec[0]),
 				idAgrup : Std.parseInt(rec[1]),
