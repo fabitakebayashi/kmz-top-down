@@ -91,7 +91,7 @@ class KmzTopDown {
 		}
 
 		trace('Pruning ${entries.length - Lambda.count(keep)} icon zip entries');
-		return Lambda.filter(entries, function (e) return !keep.exists(e.fileName));
+		return Lambda.filter(entries, function (e) return keep.exists(e.fileName));
 	}
 
 	static function getOrAddFolder(xml:Xml, name:String){
@@ -173,7 +173,7 @@ class KmzTopDown {
 			var icon = selectIcon(iconsData, data);
 			if (pmark.elementsNamed("styleUrl").hasNext())
 				pmark.removeChild(pmark.elementsNamed("styleUrl").next());
-			pmark.addChild(Xml.parse('<styleUrl>#icons/$icon.png</styleUrl>'));
+			pmark.addChild(Xml.parse('<styleUrl>#icons/$icon.png</styleUrl>').firstChild());
 		}
 		for (pmark in rm)
 			pmark.parent.removeChild(pmark);
@@ -185,7 +185,7 @@ class KmzTopDown {
 			if (!StringTools.endsWith(path.toLowerCase(), ".png"))
 				continue;
 			var kmzPath = "icons/" + path;
-			var style = Xml.parse('<Style id="$kmzPath"><IconStyle><Icon><href>$kmzPath</href></Icon></IconStyle></Style>');
+			var style = Xml.parse('<Style id="$kmzPath"><IconStyle><Icon><href>$kmzPath</href></Icon></IconStyle></Style>').firstChild();
 			doc.insertChild(style,1);
 			out.add({
 				fileName : kmzPath,
