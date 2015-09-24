@@ -30,14 +30,17 @@ class KmzTopDown {
 		return xml.elementsNamed("name").next().firstChild().nodeValue;
 	}
 
-	static function findFolders(xml:Xml){
+	static function findElements(name:String, xml:Xml){
 		var ret = [];
-		if(xml.nodeType==Element && xml.nodeName=="Folder")
-			ret.push(getElementName(xml)); //"nunca faça isto (sobre next())"
+		if(xml.nodeType==Element && xml.nodeName==name)
+			ret.push(xml); //"nunca faça isto (sobre next())"
 		for (e in xml.elements())
-			ret = ret.concat(findFolders(e));
+			ret = ret.concat(findElements(name, e));
 		return ret;
 	}
+
+	static function findFolderNames(xml:Xml)
+		return findElements("Folder", xml).map(getElementName);
 
 	static function pruneFolders(xml:Xml)
 	{
@@ -50,6 +53,27 @@ class KmzTopDown {
 			if (pmarks.length + folders.length == 0)
 				xml.parent.removeChild(xml);
 		}
+	}
+
+	static function pruneStyles(doc:Xml)
+	{
+		var del = new Map();
+
+		// all styles
+		for (style in doc.elementsNamed("Style"))
+			del[style.get("id")] = style;
+
+		// don't delete used styles
+		for (use in findElements("styleUrl", doc)) {
+			var url = use.firstChild().nodeValue;
+			if (!StringTools.startsWith(url, "#"))
+				continue;
+			del.remove(url.substr(1));
+		}
+
+		// actually remove the style nodes
+		for (node in del)
+			doc.removeChild(node);
 	}
 
 	static function getOrAddFolder(xml:Xml, name:String){
@@ -231,7 +255,7 @@ class KmzTopDown {
 		var zoutput = new BytesOutput();
 		var zwriter = new haxe.zip.Writer(zoutput);
 
-		trace("Folder Kml elements:\n\t" + findFolders(kml).join("\n\t"));
+		trace("Folder Kml elements:\n\t" + findFolderNames(kml).join("\n\t"));
 
 		var iconsPath = args[1];
 		var iconsJson = File.getContent(iconsPath);
@@ -256,7 +280,8 @@ class KmzTopDown {
 		processLabels(tracadoFolder,kmzTopDownData,iconsData,doc);  // temporário para traçados
 
 		// finishing touches
-		pruneFolders(kml);
+		pruneFolders(doc);
+		pruneStyles(doc);
 		doc.removeChild(doc.elementsNamed("name").next());
 		doc.addChild(Xml.parse('<name>$kmzPath</name>'));
 
