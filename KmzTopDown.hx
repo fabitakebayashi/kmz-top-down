@@ -317,6 +317,14 @@ class KmzTopDown {
 		});
 
 		// escreve o kmz
+		for (e in zentries) {
+			if (e.compressed || e.data == null || e.data.length == 0)
+				continue;
+			if (e.crc32 == null)
+				e.crc32 = haxe.crypto.Crc32.make(e.data);
+			e.fileSize = e.data.length;
+			haxe.zip.Tools.compress(e, -1);
+		}
 		zwriter.write(zentries);
 		File.saveBytes(kmzPath, zoutput.getBytes());
 		File.saveBytes("temp.kml", docBytes);
