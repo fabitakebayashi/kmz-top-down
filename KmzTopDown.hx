@@ -219,6 +219,7 @@ class KmzTopDown {
 		var doc=kml.elementsNamed("kml").next().elementsNamed("Document").next();
 
 		var kmzPath = ~/\.kml$/.replace(kmlPath, "_topDown.kmz");
+		var dbgPath = ~/\.kml$/.replace(kmlPath, "_topDownDebug.kml");
 		var zentries = new List();
 		var zoutput = new BytesOutput();
 		var zwriter = new haxe.zip.Writer(zoutput);
@@ -249,11 +250,11 @@ class KmzTopDown {
 		doc.addChild(Xml.parse('<name>$kmzPath</name>'));
 
 		// escreve o doc.kml no kmz de saída
-		var docBytes = Bytes.ofString(haxe.xml.Printer.print(kml, true));
+		var outBytes = Bytes.ofString(haxe.xml.Printer.print(kml, true));
 		zentries.add({
 			fileName : "doc.kml",
 			fileTime : Date.now(),
-			data : docBytes,
+			data : outBytes,
 			compressed : false,
 			fileSize : 0,
 			dataSize :  0,
@@ -271,6 +272,7 @@ class KmzTopDown {
 		}
 		zwriter.write(zentries);
 		File.saveBytes(kmzPath, zoutput.getBytes());
+		File.saveBytes(dbgPath, outBytes);
 	}
 
 	static function main() {
