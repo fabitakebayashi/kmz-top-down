@@ -247,7 +247,7 @@ class KmzTopDown {
 		pruneStyles(doc);
 		zentries = filterIconEntries(zentries, doc);
 		doc.removeChild(doc.elementsNamed("name").next());
-		doc.addChild(Xml.parse('<name>$kmzPath</name>'));
+		doc.insertChild(Xml.parse('<name>${ensureUtf8(kmzPath)}</name>').firstChild(), 0);
 
 		// escreve o doc.kml no kmz de saída
 		var outBytes = Bytes.ofString(haxe.xml.Printer.print(kml, true));
