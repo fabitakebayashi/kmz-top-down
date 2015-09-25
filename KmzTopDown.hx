@@ -27,7 +27,7 @@ typedef IconsData = {
 
 class KmzTopDown {
 	static function getElementName(xml:Xml) {
-		return xml.elementsNamed("name").next().firstChild().nodeValue;
+		return StringTools.trim(xml.elementsNamed("name").next().firstChild().nodeValue);
 	}
 
 	static function findElements(name:String, xml:Xml){
@@ -66,7 +66,7 @@ class KmzTopDown {
 
 		// don't delete used styles
 		for (use in findElements("styleUrl", doc)) {
-			var url = use.firstChild().nodeValue;
+			var url = StringTools.trim(use.firstChild().nodeValue);
 			if (!StringTools.startsWith(url, "#"))
 				continue;
 			del.remove(url.substr(1));
