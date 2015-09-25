@@ -219,7 +219,8 @@ class KmzTopDown {
 		var doc=kml.elementsNamed("kml").next().elementsNamed("Document").next();
 
 		var kmzPath = ~/\.kml$/.replace(kmlPath, "_topDown.kmz");
-		var dbgPath = ~/\.kml$/.replace(kmlPath, "_topDownDebug.kml");
+		var dbgPath = ~/\.kml$/.replace(kmlPath, "_topDownDebug.xml");
+
 		var zentries = new List();
 		var zoutput = new BytesOutput();
 		var zwriter = new haxe.zip.Writer(zoutput);
