@@ -125,9 +125,16 @@ class KmzTopDown {
 		var ca = Reflect.field(iconsData.codAncora, Std.string(pmarkData.idAncora));
 		var cp = Reflect.field(Reflect.field(iconsData.codProjeto, pmarkData.localProj), pmarkData.infraProj);
 		var cc = Reflect.field(iconsData.categoria, pmarkData.resAHP);
-		if (ca == null || cp == null || cc == null)
-			trace('WARNING faltam ícones para ${pmarkData.idPleito}: $ca (${pmarkData.idAncora}) $cp (${pmarkData.infraProj}) $cc (${pmarkData.resAHP})');
-		return '$ca-$cp$cc';
+		var icon = '$ca-$cp$cc';
+		if (ca == null || cp == null || cc == null) {
+			icon = StringTools.replace(icon, "null", "?");
+			var debug = [];
+			debug.push('âncora "${pmarkData.idAncora}" => ${ca != null ? ca : "?"}');
+			debug.push('infra "${pmarkData.infraProj}", extensão "${pmarkData.localProj}" => ${cp != null ? cp : "?"}');
+			debug.push('resultado "${pmarkData.resAHP}" => ${cc != null ? cc : "?"}');
+			trace('WARNING falta ícone para o pleito ${pmarkData.idPleito}: $icon\n\t${debug.join("\n\t")}');
+		}
+		return icon;
 	}
 
 	static function processLabels(xml:Xml, kmzTopDownData:Map<Int, TopDownDataRecord>, iconsData:IconsData,doc:Xml){
