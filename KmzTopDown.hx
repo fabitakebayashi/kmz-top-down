@@ -17,7 +17,7 @@ typedef TopDownDataRecord = {
 	notaBU : String
 }
 
-typedef IconsData = {
+typedef IconData = {
 	codAncora : Dynamic,
 	codProjeto : Dynamic,
 	categoria : Dynamic,
@@ -27,6 +27,8 @@ typedef IconsData = {
 
 class KmzTopDown {
 	static function getElementName(xml:Xml) {
+		if (xml == null)
+			throw "";
 		return StringTools.trim(xml.elementsNamed("name").next().firstChild().nodeValue);
 	}
 
@@ -125,10 +127,10 @@ class KmzTopDown {
 		return s == null || haxe.Utf8.validate(s) ? s : haxe.Utf8.encode(s);
 	}
 
-	static function selectIcon(iconsData:IconsData, pmarkData:TopDownDataRecord){
-		var ca = Reflect.field(iconsData.codAncora, Std.string(pmarkData.idAncora));
-		var cp = Reflect.field(Reflect.field(iconsData.codProjeto, pmarkData.localProj), pmarkData.infraProj);
-		var cc = Reflect.field(iconsData.categoria, pmarkData.resAHP);
+	static function selectIcon(iconData:IconData, pmarkData:TopDownDataRecord){
+		var ca = Reflect.field(iconData.codAncora, Std.string(pmarkData.idAncora));
+		var cp = Reflect.field(Reflect.field(iconData.codProjeto, pmarkData.localProj), pmarkData.infraProj);
+		var cc = Reflect.field(iconData.categoria, pmarkData.resAHP);
 		var icon = '$ca-$cp$cc';
 		if (ca == null || cp == null || cc == null) {
 			icon = StringTools.replace(icon, "null", "?");
@@ -141,22 +143,22 @@ class KmzTopDown {
 		return icon;
 	}
 
-	static function processLabels(xml:Xml, kmzTopDownData:Map<Int, TopDownDataRecord>, iconsData:IconsData,doc:Xml){
+	static function processLabels(xml:Xml, topDownData:Map<Int, TopDownDataRecord>, iconData:IconData,doc:Xml){
 		trace('Em ${getElementName(xml)}');
 		for (folder in xml.elementsNamed("Folder")){
 			$type(folder);
-			processLabels(folder,kmzTopDownData,iconsData,doc);
+			processLabels(folder,topDownData,iconData,doc);
 		}
 		var rm = [];
 		for (pmark in xml.elementsNamed("Placemark")){
 			var idPlacemark=getElementName(pmark);
 			$type(idPlacemark);
-			var data=kmzTopDownData.get(Std.parseInt(idPlacemark));
+			var data=topDownData.get(Std.parseInt(idPlacemark));
 			if (data==null){
 				trace('WARNING falta info para pleito $idPlacemark');
 				continue;
 			}
-			if (Lambda.has(iconsData.categoriaIgnorada, data.resAHP)) {
+			if (Lambda.has(iconData.categoriaIgnorada, data.resAHP)) {
 				trace('WARNING removendo pleito $idPlacemark (resAHP: ${data.resAHP})');
 				rm.push(pmark);
 				continue;
@@ -181,7 +183,7 @@ class KmzTopDown {
 
 			if (!pmark.elementsNamed("Point").hasNext())
 				continue;
-			var icon = selectIcon(iconsData, data);
+			var icon = selectIcon(iconData, data);
 			if (pmark.elementsNamed("styleUrl").hasNext())
 				pmark.removeChild(pmark.elementsNamed("styleUrl").next());
 			pmark.addChild(Xml.parse('<styleUrl>#icons/$icon.png</styleUrl>').firstChild());
@@ -190,8 +192,8 @@ class KmzTopDown {
 			pmark.parent.removeChild(pmark);
 	}
 
-	static function createIcons(doc:Xml, out:List<ZipEntry>, iconsData:IconsData){
-		var iconsPath = sys.FileSystem.readDirectory(iconsData.source);
+	static function createIcons(doc:Xml, out:List<ZipEntry>, iconData:IconData){
+		var iconsPath = sys.FileSystem.readDirectory(iconData.source);
 		for (path in iconsPath){
 			if (!StringTools.endsWith(path.toLowerCase(), ".png"))
 				continue;
@@ -201,7 +203,7 @@ class KmzTopDown {
 			out.add({
 				fileName : kmzPath,
 				fileTime : Date.now(),
-				data : File.getBytes('${iconsData.source}/$path'),
+				data : File.getBytes('${iconData.source}/$path'),
 				compressed : false,
 				fileSize : 0,
 				dataSize :  0,
@@ -210,73 +212,10 @@ class KmzTopDown {
 		}
 	}
 
-	static function main() {
-		// customiza trace() para melhor legibilidade e para que lide automaticamente com !Utf8 no Windows
-		haxe.Log.trace = function (msg, ?pos) {
-			msg = Std.string(msg);
-			// no Windows, remove Utf8 (decodifica para o que o console está usando)
-			if (Sys.systemName() == "Windows" && haxe.Utf8.validate(msg))
-				msg = haxe.Utf8.decode(msg);
-			// já no Linux ou Mac, converte para Utf8 se já não estiver assim
-			if (Sys.systemName() != "Windows" && !haxe.Utf8.validate(msg))
-				msg = haxe.Utf8.encode(msg);
-			// prepara a mensagem
-			msg += '   @ ${pos.className}::${pos.methodName} (${pos.fileName}:${pos.lineNumber})\n';
-			if (pos.customParams != null)
-				msg += pos.customParams.map(function (x) return '\t$x\n');
-			// escreve no console (no output de erro)
-			Sys.stderr().writeString(msg);
-		}
-
-		trace("Welcome, Pookyto!");
-
-		var args = Sys.args(); //mto estúpido!
-		trace('Command line arguments: ${args.join(",")}');
-
-		if (args.length < 3)
-			throw "Usage: KmzTopDown <data.csv> <icons.json> <kml,kmz> ...";
-		var csvPath = args[0];
-
-		var csvData:haxe.io.Input = sys.io.File.read(csvPath, false);
-		//var csvData:Input = File.read(csvPath, false);
-		//trace(csvData.readLine()); - não usar!!! só para não esquecer!!! não descomentar pq o Jonas explode!!
-
-		var reader = new format.csv.Reader(";");
-		reader.reset(null, csvData);
-
-		var kmzTopDownData = new Map();
-		for (rec in reader){
-			if (rec.length == 1 && rec[0].length > 0)
-				throw 'ERROR missing fields or wrong separator';
-
-			var data = {
-				idPleito : Std.parseInt(rec[0]),
-				idAgrup : Std.parseInt(rec[1]),
-				idAncora : Std.parseInt(rec[2]),
-				tipoProj : ensureUtf8(rec[3]),
-				resAHP : ensureUtf8(rec[4]),
-				localProj : ensureUtf8(rec[5]),
-				infraProj : ensureUtf8(rec[6]),
-				posAHP : ensureUtf8(rec[7]),
-				nomeProj : ensureUtf8(rec[8]),
-				invest : ensureUtf8(rec[9]),
-				notaDE : ensureUtf8(rec[10]),
-				notaBU : ensureUtf8(rec[11])
-			};
-
-			// ignore se não foi possível parsear idPleito em Int
-			if (data.idPleito == null) {
-				trace('WARNING ignorando linha do csv: ${rec.slice(0,3).join(",")}...');
-				continue;
-			}
-
-			kmzTopDownData.set(data.idPleito, data);
-		}
-
-		var kmlPath = args[2];
+	static function process(topDownData:Map<Int,TopDownDataRecord>, iconData:IconData, kmlPath:String)
+	{
 		var kmlData:Input = File.read(kmlPath,true);
 		var kml = Xml.parse(kmlData.readAll().toString());
-
 		var doc=kml.elementsNamed("kml").next().elementsNamed("Document").next();
 
 		var kmzPath = ~/\.kml$/.replace(kmlPath, "_topDown.kmz");
@@ -286,27 +225,21 @@ class KmzTopDown {
 
 		trace("Folder Kml elements:\n\t" + findFolderNames(kml).join("\n\t"));
 
-		var iconsPath = args[1];
-		var iconsJson = File.getContent(iconsPath);
-		var iconsData:IconsData = haxe.Json.parse(iconsJson);
+		createIcons(doc, zentries, iconData);
 
-		createIcons(doc, zentries, iconsData);
-
-		//kml.addChild(Xml.createComment("Eu sou um comentário feliz-Pookyto!"));
-		//File.saveContent("temp.kml", kml.toString());
-
-		// não necessário, processLabels já chama getOrAddFolder conforme necessário
-		// for (fname in ["Selecionado", "Análise", "Projetos decididos"])
-		// 	getOrAddFolder(doc,fname);
+		// kml.addChild(Xml.createComment("Eu sou um comentário feliz-Pookyto!"));
 
 		var ancoraFolder=doc.elementsNamed("Folder").next(); //âncora
 		var ancoraContents=ancoraFolder.elementsNamed("Folder");
 
-		var tracadoFolder=ancoraContents.next(); //pasta traçado
 		var labelsFolder=ancoraContents.next(); //pasta labels
+		var tracadoFolder=ancoraContents.next(); //pasta traçado
 
-		processLabels(labelsFolder,kmzTopDownData,iconsData,doc);
-		processLabels(tracadoFolder,kmzTopDownData,iconsData,doc);  // temporário para traçados
+		if (labelsFolder != null)
+			processLabels(labelsFolder,topDownData,iconData,doc);
+
+		if (tracadoFolder != null)
+			processLabels(tracadoFolder,topDownData,iconData,doc);  // temporário para traçados, funcionando mas pode falhar no futuro
 
 		// finishing touches
 		pruneFolders(doc);
@@ -338,7 +271,78 @@ class KmzTopDown {
 		}
 		zwriter.write(zentries);
 		File.saveBytes(kmzPath, zoutput.getBytes());
-		File.saveBytes("temp.kml", docBytes);
+	}
+
+	static function main() {
+		// customiza trace() para melhor legibilidade e para que lide automaticamente com !Utf8 no Windows
+		haxe.Log.trace = function (msg, ?pos) {
+			msg = Std.string(msg);
+			// no Windows, remove Utf8 (decodifica para o que o console está usando)
+			if (Sys.systemName() == "Windows" && haxe.Utf8.validate(msg))
+				msg = haxe.Utf8.decode(msg);
+			// já no Linux ou Mac, converte para Utf8 se já não estiver assim
+			if (Sys.systemName() != "Windows" && !haxe.Utf8.validate(msg))
+				msg = haxe.Utf8.encode(msg);
+			// prepara a mensagem
+			msg += '   @ ${pos.className}::${pos.methodName} (${pos.fileName}:${pos.lineNumber})\n';
+			if (pos.customParams != null)
+				msg += pos.customParams.map(function (x) return '\t$x\n');
+			// escreve no console (no output de erro)
+			Sys.stderr().writeString(msg);
+		}
+
+		trace("Welcome, Pookyto!");
+
+		var args = Sys.args(); //mto estúpido!
+		trace('Command line arguments: ${args.join(",")}');
+		if (args.length < 3) {
+			trace("Usage: KmzTopDown <data.csv> <icons.json> <kml,kmz> ...");
+			Sys.exit(-1);
+		}
+		var csvPath = args[0];
+		var iconsPath = args[1];
+		var kmlPaths = args.slice(2);
+
+		var csvData:haxe.io.Input = sys.io.File.read(csvPath, false); // ou, mais curto, var csvData:Input = File.read(csvPath, false);
+		// trace(csvData.readLine()); - não usar!!! só para não esquecer!!! não descomentar pq o Jonas explode!!
+		var reader = new format.csv.Reader(";");
+		reader.reset(null, csvData);
+		var topDownData = new Map();
+		for (rec in reader){
+			if (rec.length == 1 && rec[0].length > 0)
+				throw 'ERROR missing fields or wrong separator';
+
+			var data = {
+				idPleito : Std.parseInt(rec[0]),
+				idAgrup : Std.parseInt(rec[1]),
+				idAncora : Std.parseInt(rec[2]),
+				tipoProj : ensureUtf8(rec[3]),
+				resAHP : ensureUtf8(rec[4]),
+				localProj : ensureUtf8(rec[5]),
+				infraProj : ensureUtf8(rec[6]),
+				posAHP : ensureUtf8(rec[7]),
+				nomeProj : ensureUtf8(rec[8]),
+				invest : ensureUtf8(rec[9]),
+				notaDE : ensureUtf8(rec[10]),
+				notaBU : ensureUtf8(rec[11])
+			};
+
+			// ignore se não foi possível parsear idPleito em Int
+			if (data.idPleito == null) {
+				trace('WARNING ignorando linha do csv: ${rec.slice(0,3).join(",")}...');
+				continue;
+			}
+
+			topDownData.set(data.idPleito, data);
+		}
+
+		var iconJson = File.getContent(iconsPath);
+		var iconData:IconData = haxe.Json.parse(iconJson);
+
+		for (path in kmlPaths) {
+			trace('PROCESSANDO $path');
+			process(topDownData, iconData, path);
+		}
 	}
 }
 
