@@ -85,7 +85,11 @@ class KmzTopDown {
 		var keep = new Map();
 		for (style in doc.elementsNamed("Style")) {
 			for (istyle in style.elementsNamed("IconStyle")) {
-				var path = istyle.elementsNamed("Icon").next().elementsNamed("href").next().firstChild().nodeValue;
+				var icon = istyle.elementsNamed("Icon").next();
+				if (icon == null) continue;
+				var href = icon.elementsNamed("href").next();
+				if (href == null) continue;
+				var path = StringTools.trim(href.firstChild().nodeValue);
 				keep[path] = true;
 			}
 		}
