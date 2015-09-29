@@ -76,7 +76,7 @@ class KmzTopDown {
 		}
 
 		// actually remove the style nodes
-		trace('Pruning ${Lambda.count(del)} unused styles');
+		trace('Limpando estilos não usados: ${Lambda.count(del)}');
 		for (node in del)
 			doc.removeChild(node);
 	}
@@ -97,7 +97,7 @@ class KmzTopDown {
 			}
 		}
 
-		trace('Pruning ${entries.length - Lambda.count(keep)} icon zip entries');
+		trace('Limpando ícones locais não usados: ${entries.length - Lambda.count(keep)}');
 		return Lambda.filter(entries, function (e) return keep.exists(e.fileName));
 	}
 
@@ -145,7 +145,7 @@ class KmzTopDown {
 	}
 
 	static function processLabels(xml:Xml, topDownData:Map<Int, TopDownDataRecord>, iconData:IconData,doc:Xml){
-		trace('Em ${getElementName(xml)}');
+		trace('Na pasta ${getElementName(xml)}');
 		for (folder in xml.elementsNamed("Folder")){
 			$type(folder);
 			processLabels(folder,topDownData,iconData,doc);
@@ -160,7 +160,7 @@ class KmzTopDown {
 				continue;
 			}
 			if (Lambda.has(iconData.categoriaIgnorada, data.resAHP)) {
-				trace('WARNING removendo pleito $idPlacemark (resAHP: ${data.resAHP})');
+				trace('Removendo pleito $idPlacemark (resAHP: ${data.resAHP})');
 				rm.push(pmark);
 				continue;
 			}
@@ -281,9 +281,9 @@ class KmzTopDown {
 
 	static function usageError(msg, ?pos:haxe.PosInfos)
 	{
-		Sys.println('Usage error reported from ${pos.fileName}:${pos.lineNumber}');
+		Sys.println('Erro nos argumentos recebidos detectado em ${pos.fileName}:${pos.lineNumber}');
 		Sys.println(msg);
-		Sys.println("Usage: KmzTopDown <data.csv> <icons.json> <kml,kmz> ...");
+		Sys.println("Uso: KmzTopDown <data.csv> <icons.json> <kml> [ <kml> ... ]");
 		Sys.exit(1);
 	}
 
@@ -300,25 +300,25 @@ class KmzTopDown {
 			if (k == "--")
 				break;  // indicates only that everything after should be treated as positional
 			if (!OPTION_PARAM_CNT.exists(k))
-				usageError('Unknown command line option $k');
+				usageError('Opção $k desconhecida');
 			var v = [];
 			for (i in 0...OPTION_PARAM_CNT.get(k)) {
 				if (args.length == 0)
-					usageError('Missing ${i+1}th parameter for option $k');
+					usageError('Falta o ${i+1}o parâmetro para a opção $k');
 				v.push(args.shift());
 			}
 			options.set(k, v);
 		}
-		trace("Command line arguments – options:", options);
+		trace("Argumentos da linha de comando – opções:", options);
 
 		if (args.length < 3)
-			usageError('Missing last ${3-args.length} arguments');
+			usageError('Falta ${3-args.length} argumentos');
 		var positionals = {
 			csvPath : args.shift(),
 			iconDataPath : args.shift(),
 			kmlPaths : args
 		}
-		trace("Command line arguments – positionals:", positionals);
+		trace("Argumentos da linha de comando – posicionais:", positionals);
 
 		return { options : options, positionals : positionals };
 	}
@@ -341,7 +341,7 @@ class KmzTopDown {
 			Sys.stderr().writeString(msg);
 		}
 
-		trace("Welcome, Pookyto!");
+		trace("Oi, Pookyto!");
 
 		var args = parseArgs(Sys.args());
 		var csvPath = args.positionals.csvPath;
@@ -355,7 +355,7 @@ class KmzTopDown {
 		var topDownData = new Map();
 		for (rec in reader){
 			if (rec.length == 1 && rec[0].length > 0)
-				throw 'ERROR missing fields or wrong separator';
+				throw 'ERROR faltam campos ou separador errado';
 
 			var data = {
 				idPleito : Std.parseInt(rec[0]),
@@ -374,7 +374,7 @@ class KmzTopDown {
 
 			// ignore se não foi possível parsear idPleito em Int
 			if (data.idPleito == null) {
-				trace('WARNING ignorando linha do csv: ${rec.slice(0,3).join(",")}...');
+				trace('WARNING ignorando linha: ${rec.slice(0,3).join(",")}...');
 				continue;
 			}
 
@@ -387,11 +387,11 @@ class KmzTopDown {
 			if (iconData.scale == null)
 				iconData.scale = 1;
 			iconData.scale *= Std.parseFloat(args.options.get(OPTION_SCALE)[0]);
-			trace('Scale was adjusted from the command line and was set to ${iconData.scale}');
+			trace('A escala foi ajustada na linha de comando e seu valor agora é ${iconData.scale}');
 		}
 
 		for (path in kmlPaths) {
-			trace('PROCESSANDO $path');
+			trace('PROCESSANDO kml $path');
 			process(topDownData, iconData, path);
 		}
 	}
