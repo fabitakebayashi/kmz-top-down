@@ -279,6 +279,50 @@ class KmzTopDown {
 		File.saveBytes(dbgPath, outBytes);
 	}
 
+	static function usageError(msg, ?pos:haxe.PosInfos)
+	{
+		Sys.println('Usage error reported from ${pos.fileName}:${pos.lineNumber}');
+		Sys.println(msg);
+		Sys.println("Usage: KmzTopDown <data.csv> <icons.json> <kml,kmz> ...");
+		Sys.exit(1);
+	}
+
+	static inline var OPTION_SCALE = "--scale";
+	static var OPTION_PARAM_CNT = [ OPTION_SCALE => 1 ];  // key, number of values
+
+	static function parseArgs(args:Array<String>)
+	{
+		args = args.copy();
+
+		var options = new Map();
+		while (args.length > 0 && StringTools.startsWith(args[0], "--")) {
+			var k = args.shift();
+			if (k == "--")
+				break;  // indicates only that everything after should be treated as positional
+			if (!OPTION_PARAM_CNT.exists(k))
+				usageError('Unknown command line option $k');
+			var v = [];
+			for (i in 0...OPTION_PARAM_CNT.get(k)) {
+				if (args.length == 0)
+					usageError('Missing ${i+1}th parameter for option $k');
+				v.push(args.shift());
+			}
+			options.set(k, v);
+		}
+		trace("Command line arguments – options:", options);
+
+		if (args.length < 3)
+			usageError('Missing last ${3-args.length} arguments');
+		var positionals = {
+			csvPath : args.shift(),
+			iconDataPath : args.shift(),
+			kmlPaths : args
+		}
+		trace("Command line arguments – positionals:", positionals);
+
+		return { options : options, positionals : positionals };
+	}
+
 	static function main() {
 		// customiza trace() para melhor legibilidade e para que lide automaticamente com !Utf8 no Windows
 		haxe.Log.trace = function (msg, ?pos) {
@@ -292,22 +336,17 @@ class KmzTopDown {
 			// prepara a mensagem
 			msg += '   @ ${pos.className}::${pos.methodName} (${pos.fileName}:${pos.lineNumber})\n';
 			if (pos.customParams != null)
-				msg += pos.customParams.map(function (x) return '\t$x\n');
+				msg += pos.customParams.map(function (x) return '\t$x\n').join("");
 			// escreve no console (no output de erro)
 			Sys.stderr().writeString(msg);
 		}
 
 		trace("Welcome, Pookyto!");
 
-		var args = Sys.args(); //mto estúpido!
-		trace('Command line arguments: ${args.join(",")}');
-		if (args.length < 3) {
-			trace("Usage: KmzTopDown <data.csv> <icons.json> <kml,kmz> ...");
-			Sys.exit(-1);
-		}
-		var csvPath = args[0];
-		var iconsPath = args[1];
-		var kmlPaths = args.slice(2);
+		var args = parseArgs(Sys.args());
+		var csvPath = args.positionals.csvPath;
+		var iconsPath = args.positionals.iconDataPath;
+		var kmlPaths = args.positionals.kmlPaths;
 
 		var csvData:haxe.io.Input = sys.io.File.read(csvPath, false); // ou, mais curto, var csvData:Input = File.read(csvPath, false);
 		// trace(csvData.readLine()); - não usar!!! só para não esquecer!!! não descomentar pq o Jonas explode!!
@@ -344,6 +383,12 @@ class KmzTopDown {
 
 		var iconJson = File.getContent(iconsPath);
 		var iconData:IconData = haxe.Json.parse(iconJson);
+		if (args.options.exists(OPTION_SCALE)) {
+			if (iconData.scale == null)
+				iconData.scale = 1;
+			iconData.scale *= Std.parseFloat(args.options.get(OPTION_SCALE)[0]);
+			trace('Scale was adjusted from the command line and was set to ${iconData.scale}');
+		}
 
 		for (path in kmlPaths) {
 			trace('PROCESSANDO $path');
