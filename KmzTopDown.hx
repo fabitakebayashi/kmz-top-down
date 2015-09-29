@@ -287,7 +287,7 @@ class KmzTopDown {
 	{
 		Sys.println('Erro nos argumentos recebidos detectado em ${pos.fileName}:${pos.lineNumber}');
 		Sys.println(msg);
-		Sys.println("Uso: KmzTopDown <data.csv> <icons.json> <kml> [ <kml> ... ]");
+		Sys.println("Uso: KmzTopDown [--scale <f>] [--debug] <data.csv> <icons.json> <kml> [<kml> ...]");
 		Sys.exit(1);
 	}
 
@@ -319,7 +319,7 @@ class KmzTopDown {
 		}
 
 		if (args.length < 3)
-			usageError('Falta ${3-args.length} argumentos');
+			usageError('Falta ${3-args.length} argumentos obrigatórios e posicionais');
 		var positionals = {
 			csvPath : args.shift(),
 			iconDataPath : args.shift(),
