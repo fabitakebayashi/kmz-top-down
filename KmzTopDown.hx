@@ -22,7 +22,8 @@ typedef IconData = {
 	codProjeto : Dynamic,
 	categoria : Dynamic,
 	categoriaIgnorada : Array<String>,
-	source : String
+	source : String,
+	scale : Null<Float>
 }
 
 class KmzTopDown {
@@ -199,6 +200,8 @@ class KmzTopDown {
 				continue;
 			var kmzPath = "icons/" + path;
 			var style = Xml.parse('<Style id="$kmzPath"><IconStyle><Icon><href>$kmzPath</href></Icon></IconStyle></Style>').firstChild();
+			if (iconData.scale != null)
+				style.elementsNamed("IconStyle").next().addChild(Xml.parse('<scale>${iconData.scale}</scale>').firstChild());
 			doc.insertChild(style,1);
 			out.add({
 				fileName : kmzPath,
