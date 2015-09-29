@@ -27,6 +27,8 @@ typedef IconData = {
 }
 
 class KmzTopDown {
+	static var inDebugMode = false;
+
 	static function getElementName(xml:Xml) {
 		if (xml == null)
 			throw "";
@@ -135,17 +137,19 @@ class KmzTopDown {
 		var icon = '$ca-$cp$cc';
 		if (ca == null || cp == null || cc == null) {
 			icon = StringTools.replace(icon, "null", "?");
-			var debug = [];
-			debug.push('âncora "${pmarkData.idAncora}" => ${ca != null ? ca : "?"}');
-			debug.push('infra "${pmarkData.infraProj}", extensão "${pmarkData.localProj}" => ${cp != null ? cp : "?"}');
-			debug.push('resultado "${pmarkData.resAHP}" => ${cc != null ? cc : "?"}');
-			trace('WARNING falta ícone para o pleito ${pmarkData.idPleito}: $icon\n\t${debug.join("\n\t")}');
+			var msg = ['WARNING falta ícone para o pleito ${pmarkData.idPleito}: $icon'];
+			if (inDebugMode) {
+				msg.push('âncora "${pmarkData.idAncora}" => ${ca != null ? ca : "?"}');
+				msg.push('infra "${pmarkData.infraProj}", extensão "${pmarkData.localProj}" => ${cp != null ? cp : "?"}');
+				msg.push('resultado "${pmarkData.resAHP}" => ${cc != null ? cc : "?"}');
+			}
+			trace(msg.join("\n\t"));
 		}
 		return icon;
 	}
 
 	static function processLabels(xml:Xml, topDownData:Map<Int, TopDownDataRecord>, iconData:IconData,doc:Xml){
-		trace('Na pasta ${getElementName(xml)}');
+		if (inDebugMode) trace('Na pasta ${getElementName(xml)}');
 		for (folder in xml.elementsNamed("Folder")){
 			$type(folder);
 			processLabels(folder,topDownData,iconData,doc);
@@ -228,7 +232,7 @@ class KmzTopDown {
 		var zoutput = new BytesOutput();
 		var zwriter = new haxe.zip.Writer(zoutput);
 
-		trace("Folder Kml elements:\n\t" + findFolderNames(kml).join("\n\t"));
+		if (inDebugMode) trace("Pastas no Kml:\n\t" + findFolderNames(kml).join("\n\t"));
 
 		createIcons(doc, zentries, iconData);
 
@@ -287,8 +291,12 @@ class KmzTopDown {
 		Sys.exit(1);
 	}
 
+	static inline var OPTION_DEBUG = "--debug";
 	static inline var OPTION_SCALE = "--scale";
-	static var OPTION_PARAM_CNT = [ OPTION_SCALE => 1 ];  // key, number of values
+	static var OPTION_PARAM_CNT = [  // key, number of values
+		OPTION_DEBUG => 0,
+		OPTION_SCALE => 1
+	];
 
 	static function parseArgs(args:Array<String>)
 	{
@@ -309,7 +317,6 @@ class KmzTopDown {
 			}
 			options.set(k, v);
 		}
-		trace("Argumentos da linha de comando – opções:", options);
 
 		if (args.length < 3)
 			usageError('Falta ${3-args.length} argumentos');
@@ -318,7 +325,6 @@ class KmzTopDown {
 			iconDataPath : args.shift(),
 			kmlPaths : args
 		}
-		trace("Argumentos da linha de comando – posicionais:", positionals);
 
 		return { options : options, positionals : positionals };
 	}
@@ -334,7 +340,9 @@ class KmzTopDown {
 			if (Sys.systemName() != "Windows" && !haxe.Utf8.validate(msg))
 				msg = haxe.Utf8.encode(msg);
 			// prepara a mensagem
-			msg += '   @ ${pos.className}::${pos.methodName} (${pos.fileName}:${pos.lineNumber})\n';
+			if (inDebugMode)
+				msg += '   @ ${pos.className}::${pos.methodName} (${pos.fileName}:${pos.lineNumber})';
+			msg += '\n';
 			if (pos.customParams != null)
 				msg += pos.customParams.map(function (x) return '\t$x\n').join("");
 			// escreve no console (no output de erro)
@@ -344,6 +352,13 @@ class KmzTopDown {
 		trace("Oi, Pookyto!");
 
 		var args = parseArgs(Sys.args());
+		if (args.options.exists(OPTION_DEBUG))
+			inDebugMode = true;
+		if (inDebugMode) {
+			trace("Argumentos da linha de comando – opções:", args.options);
+			trace("Argumentos da linha de comando – posicionais:", args.positionals);
+		}
+
 		var csvPath = args.positionals.csvPath;
 		var iconsPath = args.positionals.iconDataPath;
 		var kmlPaths = args.positionals.kmlPaths;
