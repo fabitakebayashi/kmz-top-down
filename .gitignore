@@ -1,9 +1,11 @@
 *.csv
+*.exe
 *.json
 *.kml
 *.kmz
 *.n
 *.png
 *.rar
+*.xml
 KmzTopDown
 
