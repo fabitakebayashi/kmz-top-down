@@ -28,6 +28,7 @@ typedef IconData = {
 
 class KmzTopDown {
 	static var inDebugMode = false;
+	static var inReRunMode = false;  // if the input is already ordered by anchor/group
 
 	static function getElementName(xml:Xml) {
 		if (xml == null)
@@ -238,17 +239,21 @@ class KmzTopDown {
 
 		// kml.addChild(Xml.createComment("Eu sou um comentário feliz-Pookyto!"));
 
-		var ancoraFolder=doc.elementsNamed("Folder").next(); //âncora
-		var ancoraContents=ancoraFolder.elementsNamed("Folder");
+		if (!inReRunMode) {
+			var ancoraFolder=doc.elementsNamed("Folder").next(); //âncora
+			var ancoraContents=ancoraFolder.elementsNamed("Folder");
 
-		var labelsFolder=ancoraContents.next(); //pasta labels
-		var tracadoFolder=ancoraContents.next(); //pasta traçado
+			var labelsFolder=ancoraContents.next(); //pasta labels
+			var tracadoFolder=ancoraContents.next(); //pasta traçado
 
-		if (labelsFolder != null)
-			processLabels(labelsFolder,topDownData,iconData,doc);
+			if (labelsFolder != null)
+				processLabels(labelsFolder,topDownData,iconData,doc);
 
-		if (tracadoFolder != null)
-			processLabels(tracadoFolder,topDownData,iconData,doc);  // temporário para traçados, funcionando mas pode falhar no futuro
+			if (tracadoFolder != null)
+				processLabels(tracadoFolder,topDownData,iconData,doc);  // temporário para traçados, funcionando mas pode falhar no futuro
+		} else {
+			processLabels(doc, topDownData, iconData, doc);
+		}
 
 		// finishing touches
 		pruneFolders(doc);
@@ -292,9 +297,11 @@ class KmzTopDown {
 	}
 
 	static inline var OPTION_DEBUG = "--debug";
+	static inline var OPTION_RERUN = "--rerun";
 	static inline var OPTION_SCALE = "--scale";
 	static var OPTION_PARAM_CNT = [  // key, number of values
 		OPTION_DEBUG => 0,
+		OPTION_RERUN => 0,
 		OPTION_SCALE => 1
 	];
 
@@ -354,6 +361,8 @@ class KmzTopDown {
 		var args = parseArgs(Sys.args());
 		if (args.options.exists(OPTION_DEBUG))
 			inDebugMode = true;
+		if (args.options.exists(OPTION_RERUN))
+			inReRunMode = true;
 		if (inDebugMode) {
 			trace("Argumentos da linha de comando – opções:", args.options);
 			trace("Argumentos da linha de comando – posicionais:", args.positionals);
